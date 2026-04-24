@@ -1,5 +1,9 @@
 import sounddevice as sd 
 from gpt_sovits_python import TTS, TTS_Config
+
+
+
+
 # 1. Define Model Paths an d Hardware
 # Update the paths below to point to the models inside your GPT-SoVITS folder
 sovits_config = {
@@ -17,12 +21,12 @@ print("Loading models into memory...")
 tts_config = TTS_Config(sovits_config)
 tts_pipeline = TTS(tts_config)
 
-def speak(target_text):
+def speak(target_text, ref_audio_path, prompt_text):
     params = {
-        "text": target_text,                     # <-- We pass the new text here
+        "text": target_text,
         "text_lang": "en",           
-        "ref_audio_path": "charvoice\silverworf\VO_Archive_Silver_Wolf_16.ogg", # Put your trimmed audio path here
-        "prompt_text": "I heard that no one has been able to find out where she lives? One day, I'll definitely break that myth", # Put your reference text here
+        "ref_audio_path": ref_audio_path, # <-- Now comes from config
+        "prompt_text": prompt_text,       # <-- Now comes from config
         "prompt_lang": "en",         
         "text_split_method": "cut5", 
         "batch_size": 1, 
@@ -39,7 +43,7 @@ def speak(target_text):
     sd.play(audio_data, sampling_rate)
     sd.wait()
     
-if __name__ == "__main__":
+'''__name__ == "__main__":
     # Example usage
     target_text = "Hello, this is a test of the GPT-SoVITS text-to-speech system."
-    speak(target_text)
+    speak(target_text)'''
