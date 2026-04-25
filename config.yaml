@@ -199,7 +199,7 @@ tts:
   
   # Language of the reference audio (en, zh, ja)
   reference_lang: "en"
-  
+  streaming: true
   # Target spoken language
   target_lang: "en"
   # change for specific speaker/headphone ID (leave as null to use default)

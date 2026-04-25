@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>A.L.I.C.E. Interface</title>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+    <div id="chat-window"></div>
+    
+    <div id="controls">
+        <input type="text" id="user-input" placeholder="Type a message..." autocomplete="off">
+        <button id="send-btn" class="btn">Send</button>
+        <button id="ptt-btn" class="btn">PUSH TO TALK</button>
+        <span id="status">Ready</span>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
