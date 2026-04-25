@@ -1,20 +1,40 @@
 import requests
 import random
-# 1 The LLM Generator (The Brain)
+import os
+# -----------------------------------------------------------------------------------------------
 def generate_response(user_input, config, chat_history=[]):
     backend = config['llm']['backend'].lower()
     model = config['llm']['model']
     system_prompt = config['llm']['character_prompt']
     
-    print(f"Thinking using {backend} ({model})...")
+    # --- 1. LOAD LONG-TERM MEMORY ---
+    past_memory = ""
+    if os.path.exists("memory.txt"):
+        with open("memory.txt", "r", encoding="utf-8") as f:
+            past_memory = f.read().strip()
+        
+    word_limit = random.randint(1, 50)
+    print(f"Thinking using {backend} ({model})... [Word limit: {word_limit}]")
     
-    # --- 2. GENERATE RANDOM LIMIT ---
+    # --- 2. INJECT MEMORIES INTO HER BRAIN ---
+    system_prompt = f"{system_prompt}\n\nCRITICAL RULE: You MUST answer in {word_limit} words or less. Keep it brief and snappy!"
+    
+    if past_memory:
+        system_prompt += f"""\n\n=== CRITICAL CONTEXT: LONG-TERM MEMORY ===
+        Below is a list of facts you have permanently learned about the user from previous conversations. 
+        You MUST treat these facts as absolute truth. 
+        If the user asks you about themselves or past events, you MUST use this information to answer confidently. DO NOT say you don't know. DO NOT say you don't have access to personal info.
+
+        USER FACTS:
+        {past_memory}
+        ==========================================="""
+    print(f"Thinking using {backend} ({model})...")
+    print(f"System Prompt:\n{system_prompt}\n")
+    # -----------------------------------------------------------------------------------------------
     word_limit = random.randint(10, 50)
     print(f"Thinking using {backend} ({model})... [Word limit: {word_limit}]")
     
-    # --- 3. INJECT THE LIMIT INTO HER BRAIN ---
-    # We append a strict rule to the end of her personality prompt
-    system_prompt = f"{system_prompt}\n\nCRITICAL RULE: You MUST answer in {word_limit} words or less. Keep it brief and snappy!"
+    # -----------------------------------------------------------------------------------------------
     # --- OLLAMA BACKEND ---
     if backend == "ollama":
         url = "http://localhost:11434/api/generate"

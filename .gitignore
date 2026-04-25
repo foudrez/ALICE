@@ -1,0 +1,25 @@
+# --- Python Standard ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+models/base.pt
+# --- ALICE Data & Logs ---
+chat_log.txt
+memory.txt
+temp_mic.wav
+test_audio.wav
+
+# --- Large AI Models ---
+# Don't track these; they are too big for Git
+pretrained_models/
+*.pth
+*.ckpt
+*.gguf
+
+# --- System ---
+.DS_Store
+Thumbs.db
+
+charvoice/silverwolf/

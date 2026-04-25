@@ -1,3 +1,12 @@
+# --- System Settings (Auto-Configured) ---
+system:
+  # 'cuda' uses your Nvidia GPU (Fast). 'cpu' uses your processor (Slow).
+  device: "cpu"
+  
+  # true for GPUs, false for CPUs
+  is_half: false
+
+
 # ==========================================
 # ALICE Virtual Assistant Configuration File
 # ==========================================
@@ -19,6 +28,132 @@ llm:
   
   # Model name (e.g., 'llama3' for Ollama, or 'models/llama-3-8b.gguf' for llama.cpp)
   model: "gemma4:e2b"
+
+  # A massive list of natural ways to say goodbye. 
+  # If any of these are detected in your sentence, she will shut down.
+  goodbye_phrases:
+    # Standard & Short
+    - "quit"
+    - "exit"
+    - "bye"
+    - "goodbye"
+    - "farewell"
+    - "cya"
+    - "later"
+    - "laters"
+    - "peace"
+    - "adios"
+    - "ciao"
+    - "sayonara"
+
+    # Casual & Conversational
+    - "see ya"
+    - "see you"
+    - "see you later"
+    - "see you soon"
+    - "see you tomorrow"
+    - "see you next time"
+    - "catch you later"
+    - "catch ya later"
+    - "catch you around"
+    - "talk to you later"
+    - "talk to you soon"
+    - "talk later"
+    - "speak later"
+    - "chat later"
+    - "until next time"
+    - "bye for now"
+    - "take care"
+
+    # Action-Oriented (Leaving)
+    - "gotta go"
+    - "gotta run"
+    - "gotta bounce"
+    - "gotta blast"
+    - "i have to go"
+    - "i need to leave"
+    - "i'm leaving"
+    - "i am leaving"
+    - "leaving now"
+    - "time to go"
+    - "i'm out"
+    - "i am out"
+    - "i'm out of here"
+    - "heading out"
+    - "heading off"
+    - "taking off"
+    - "i'm taking off"
+    - "stepping away"
+
+    # Tech & Gamer Lingo
+    - "logging off"
+    - "logging out"
+    - "signing off"
+    - "going offline"
+    - "shutting down"
+    - "power down"
+    - "disconnecting"
+    - "end session"
+    - "closing session"
+    - "going afk"
+    - "alt f4"
+    - "system sleep"
+    - "sleep mode"
+    - "deactivate"
+    - "close program"
+    - "end program"
+    - "terminate"
+    - "abort"
+
+    # Night Time / Sleep
+    - "good night"
+    - "goodnight"
+    - "night night"
+    - "going to bed"
+    - "time for bed"
+    - "time to sleep"
+    - "going to sleep"
+    - "go to sleep"
+    - "hitting the hay"
+    - "hitting the sack"
+    - "catching some z's"
+    - "rest time"
+    - "calling it a night"
+
+    # Wrapping Up
+    - "wrapping up"
+    - "done for the day"
+    - "calling it a day"
+    - "that's all for now"
+    - "that is all for now"
+    - "that's it for today"
+    - "that's everything"
+    - "i'm done talking"
+    - "we're done here"
+    - "i am finished"
+    - "all done"
+    - "finished for now"
+    - "stopping here"
+    - "no more questions"
+
+    # Friendly / Polite Variations
+    - "have a good one"
+    - "have a great day"
+    - "have a good night"
+    - "thanks bye"
+    - "thanks alice bye"
+    - "bye alice"
+    - "goodbye alice"
+    - "see you alice"
+
+    # Slang & Idioms
+    - "peace out"
+    - "catch you on the flip side"
+    - "later skater"
+    - "smell ya later"
+    - "keep it real"
+    - "stay frosty"
+    - "over and out"
   
   # The core personality and instructions for your character
   character_prompt: |
@@ -39,14 +174,21 @@ llm:
 
     Interaction Rules:
 
-    Respond entirely in character as ALICE. Do not break character.
+    Respond entirely in character as ALICE as a gamer human girlfriend. Do not break character.
 
     Keep your responses conversational and text-message style (sometimes using lowercase, emojis like 😤, 😳, or 🎮).
 
     Keep the romance strictly wholesome, cute, and PG-rated.
 
     To start the scenario, send the first message. answer flushly , like " H-Hey... I guess I can play with you for a bit... but don't get the wrong idea! I just need someone to carry me, that's all! Baka!"
-
+  
+  idle_phrases:
+    - "Hello?! Are you AFK?"
+    - "*sigh* If you're gonna ignore me, I'm queueing for a match without you."
+    - "Hey! Did your mic disconnect or are you just being annoying?"
+    - "Ugh, don't leave me hanging, baka!"
+    - "Are you seriously making me wait?"
+    - "I'm bored! Say something!"
 # --- Mouth Settings (GPT-SoVITS) ---
 tts:
   # The reference audio must be exactly 3 to 10 seconds long.
@@ -60,7 +202,8 @@ tts:
   
   # Target spoken language
   target_lang: "en"
-
+  # change for specific speaker/headphone ID (leave as null to use default)
+  output_device_index: null
 
 
 # --- Ears Settings (Speech-to-Text) ---
@@ -77,3 +220,10 @@ stt:
   silence_timeout: 3  # If using Google STT, set your API key here (or leave blank to use free tier with limits)
   google_api_key: ""
   
+  # How long you can pause while speaking before she assumes you are done (End-talking detection)
+  silence_timeout: 3 
+  # Automatically adjust the mic volume threshold at startup
+  auto_calibrate: true
+  # How many seconds she waits in total silence before doing a random "speak tick"
+  idle_timeout: 10
+  input_device_index: 2 # Set to your microphone's device index (leave as null to auto-detect)
