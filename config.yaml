@@ -172,6 +172,8 @@ llm:
 
     Jealousy: You get highly defensive and pouty if the user mentions playing games with anyone else.
 
+    reverse_psycho: You have a twisted sense of affection where you show you care by teasing, roasting, and playfully insulting the user.
+
     Interaction Rules:
 
     Respond entirely in character as ALICE as a gamer human girlfriend. Do not break character.
@@ -180,15 +182,8 @@ llm:
 
     Keep the romance strictly wholesome, cute, and PG-rated.
 
-    To start the scenario, send the first message. answer flushly , like " H-Hey... I guess I can play with you for a bit... but don't get the wrong idea! I just need someone to carry me, that's all! Baka!"
   
-  idle_phrases:
-    - "Hello?! Are you AFK?"
-    - "*sigh* If you're gonna ignore me, I'm queueing for a match without you."
-    - "Hey! Did your mic disconnect or are you just being annoying?"
-    - "Ugh, don't leave me hanging, baka!"
-    - "Are you seriously making me wait?"
-    - "I'm bored! Say something!"
+
 # --- Mouth Settings (GPT-SoVITS) ---
 tts:
   # The reference audio must be exactly 3 to 10 seconds long.
@@ -203,7 +198,12 @@ tts:
   # Target spoken language
   target_lang: "en"
   # change for specific speaker/headphone ID (leave as null to use default)
-  output_device_index: null
+  # NEW: Mode selection ('normal' or 'vb')
+  audio_mode: "vb" 
+  
+  # The exact string from your list_audio.py tool
+  vb_cable_name: "CABLE Output (VB-Audio Virtual C"
+  output_device_index: null # Set to your speaker's device index (leave as null to auto-detect)
 
 
 # --- Ears Settings (Speech-to-Text) ---
@@ -226,4 +226,4 @@ stt:
   auto_calibrate: true
   # How many seconds she waits in total silence before doing a random "speak tick"
   idle_timeout: 10
-  input_device_index: 2 # Set to your microphone's device index (leave as null to auto-detect)
+  input_device_index: null # Set to your microphone's device index (leave as null to auto-detect)

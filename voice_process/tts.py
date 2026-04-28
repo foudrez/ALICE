@@ -39,7 +39,6 @@ def speak(target_text, config):
     ref_audio = config['tts']['reference_audio_path']
     ref_text = config['tts']['reference_prompt_text']
     is_streaming = config['tts'].get('streaming', False)
-
     params = {
         "text": target_text,
         "text_lang": "en",           
