@@ -1,4 +1,3 @@
-import threading
 import sounddevice as sd
 import soundfile as sf
 import io
@@ -24,30 +23,27 @@ def play_on_device(audio_data, samplerate, device_id):
 
 def output_audio(result, cfg):
     """
-    Orchestrates audio playback based on 'normal' or 'vb' mode.
-    Supports both batch bytes and streaming generators.
+    Orchestrates audio playback. 
+    Prioritizes the exact integer ID defined in the system config.
     """
     mode = cfg['tts'].get('audio_mode', 'normal').lower()
-    vb_name = cfg['tts'].get('vb_cable_name', "CABLE Output")
     
-    # Identify targets
-    default_id = cfg['tts'].get('output_device_index') # Specified or None (Default)
-    vb_id = get_device_id(vb_name) if mode == 'vb' else None
+    # 1. Safely pull the exact Integer ID from the new system block
+    target_id = cfg.get('system', {}).get('output_device_index', None)
+    
+    # 2. Fallback Safety Net: If you forgot to set an ID, try to guess by name
+    if mode == 'vb' and target_id is None:
+        vb_name = cfg['tts'].get('vb_cable_name', "CABLE Input")
+        target_id = get_device_id(vb_name)
+        if target_id is None:
+            print(f"[Audio Warning] VB-Cable '{vb_name}' not found. Falling back to default speakers.")
 
     def process_block(chunk_bytes):
+        # Convert bytes to raw audio data
         data, fs = sf.read(io.BytesIO(chunk_bytes))
         
-        if mode == 'vb' and vb_id is not None:
-            # Multi-threaded playback to avoid echo/delay
-            t1 = threading.Thread(target=play_on_device, args=(data, fs, default_id))
-            t2 = threading.Thread(target=play_on_device, args=(data, fs, vb_id))
-            t1.start()
-            t2.start()
-            t1.join() # Wait for both to finish
-            t2.join()
-        else:
-            # Normal single-device playback
-            play_on_device(data, fs, default_id)
+        # Play directly to the target (If target_id is None, sounddevice uses Windows Default)
+        play_on_device(data, fs, target_id)
 
     # Handle Generator (Streaming) vs Bytes (Batch)
     if isinstance(result, types.GeneratorType):

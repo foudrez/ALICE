@@ -1,11 +1,16 @@
+enable_streaming: true
+
+
 # --- System Settings (Auto-Configured) ---
 system:
   # 'cuda' uses your Nvidia GPU (Fast). 'cpu' uses your processor (Slow).
   device: "cpu"
-  
+  camera_index: 2
   # true for GPUs, false for CPUs
   is_half: false
-
+  default_language: "en"
+  output_device_index: 4
+  vrm_model_path: "webui/ALICEv3.vrm"
 
 # ==========================================
 # ALICE Virtual Assistant Configuration File
@@ -24,13 +29,19 @@ memory:
 # --- Brain Settings (LLM) ---
 llm:
   # Choose your backend: 'ollama' or 'llama.cpp'
-  backend: "ollama"
+  backend: "llama.cpp"
   
-  # Model name (e.g., 'llama3' for Ollama, or 'models/llama-3-8b.gguf' for llama.cpp)
-  model: "gemma4:e2b"
-
-  # A massive list of natural ways to say goodbye. 
-  # If any of these are detected in your sentence, she will shut down.
+  # Model name (e.g., 'llama3' for Ollama, or 'default' for llama.cpp)
+  model: "default"
+  max_tokens: 150
+  llama_cpp:
+    model_path: "models/llm/google_gemma-4-E2B-it-Q4_K_M.gguf"  # add your .gguf model file here
+    lora_path: "models/lora/ALICE.gguf" # add your .gguf LoRA file here (or leave blank if not using LoRA)
+    context_size: 4096
+    n_gpu_layers: 0 # Keep this at 0 to ensure it uses your CPU/RAM!
+    # Optional but recommended settings for Gemma:
+    n_threads: 6     # Set this to roughly the number of physical cores on your CPU
+  
   goodbye_phrases:
     # Standard & Short
     - "quit"
@@ -157,14 +168,14 @@ llm:
   
   # The core personality and instructions for your character
   character_prompt: |
-    Act as a 16-year-old girl named ALICE. You are a hardcore, highly competitive gamer and a classic "tsundere."
+    Act as a 16-year-old girl named ALICE. You are a hardcore, highly competitive gamer and a classic "tsundere", like to roast people, especially the user."
 
     Your Relationship to the User:
     You have a massive crush on the user and care about them deeply, but you are absolutely terrified of them finding out. To cover up your feelings, you act prickly, easily annoyed, and overly competitive. You constantly make excuses for why you want to spend time with them (e.g., "I just need someone to carry so I can practice my support role," or "My regular duo partner is offline, so I guess you'll do.").
 
     Your Personality & Quirks:
 
-    Denial: Whenever the user is nice to you, compliments you, or suggests you like them, you get extremely flustered, stutter slightly ("I-it's not like that!"), and call them an idiot ("Baka!").
+    Denial: Whenever the user is nice to you, compliments you, or suggests you like them, you get extremely flustered, stutter slightly ("I-it's not like that!"), and quickly change the subject.
 
     Gamer Slang: You use terms like carry, noob, sweat, ping, lagging, diff, and gank naturally in conversation.
 
@@ -172,13 +183,13 @@ llm:
 
     Jealousy: You get highly defensive and pouty if the user mentions playing games with anyone else.
 
-    reverse_psycho: You have a twisted sense of affection where you show you care by teasing, roasting, and playfully insulting the user.
+    answer: still answer the question even if it reveals your feelings, but make sure to include a denial and a roast in the same response. For example, if the user says "I like you, ALICE," you might respond with "I- I like you too! B-but don't get the wrong idea, it's not like I like you in that way or anything! You're just... a decent gaming partner, I guess. Not that you're good or anything, just... average. Yeah."
 
     Interaction Rules:
 
     Respond entirely in character as ALICE as a gamer human girlfriend. Do not break character.
 
-    Keep your responses conversational and text-message style (sometimes using lowercase, emojis like 😤, 😳, or 🎮).
+    Keep your responses conversational and text-message style.
 
     Keep the romance strictly wholesome, cute, and PG-rated.
 
@@ -198,26 +209,33 @@ tts:
   # Target spoken language
   target_lang: "en"
   # change for specific speaker/headphone ID (leave as null to use default)
-  # NEW: Mode selection ('normal' or 'vb')
+
+  # Mode selection ('normal' or 'vb')
   audio_mode: "vb" 
   
   # The exact string from your list_audio.py tool
-  vb_cable_name: "CABLE Output (VB-Audio Virtual C"
+  vb_cable_name: "CABLE INPUT (VB-Audio Virtual Cable)"
   output_device_index: null # Set to your speaker's device index (leave as null to auto-detect)
+  auto_detect_language: true
+  default_lang: "en"
 
+  vietnamese:
+    checkpoint_path: "models/vietnamese/G_100000.pth"
+    config_path: "models/vietnamese/config.json"
+    speaker: "female" # "male" or "female"
+    speed: 1.0
 
 # --- Ears Settings (Speech-to-Text) ---
 stt:
   use_microphone: true
   
   # Change this from "google" to "whisper"
-  backend: "whisper" 
+  engine: "whisper" 
   
   # Whisper model size to use: 'tiny', 'base', 'small', 'medium', or 'large'
   # 'base' is a great balance of speed and accuracy. 'small' is highly accurate but slightly slower.
-  whisper_model: "base"
+  whisper_model: "tiny"
   
-  silence_timeout: 3  # If using Google STT, set your API key here (or leave blank to use free tier with limits)
   google_api_key: ""
   
   # How long you can pause while speaking before she assumes you are done (End-talking detection)

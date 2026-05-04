@@ -71,3 +71,18 @@ The `config.yaml` acts as the master dashboard. You can toggle features and chan
 * `main.py`: The TTS engine. Manages GPU memory and voice synthesis.
 * `hardware.py`: The auto-configurator. Detects CUDA and manages YAML settings.
 * `check_audio.py`: Diagnostic tool for finding hardware IDs.
+
+
+
+Note:
+if cuda not found, run: 
+uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+clone valtec-tts for vietnamese:
+git clone https://github.com/tronghieuit/valtec-tts.git valtec_tts
+
+download valtec pretrained model and put in models/vietnamese: 
+git clone https://huggingface.co/valtecAI-team/valtec-tts-pretrained
+
+bitnet clone : 
+git clone https://huggingface.co/microsoft/bitnet-b1.58-2B-4T-gguf
