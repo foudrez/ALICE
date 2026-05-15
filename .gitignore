@@ -1,25 +1,39 @@
-# --- Python Standard ---
+# Environments
+.env
+.venv
+venv/
+ENV/
+env/
+
+# Python caches
 __pycache__/
 *.py[cod]
-.venv/
-venv/
-.env
+*$py.class
+*.so
+.pytest_cache/
 
-# --- ALICE Data & Logs ---
-chat_log.txt
-memory.txt
-temp_mic.wav
-test_audio.wav
-models/
-# --- Large AI Models ---
-# Don't track these; they are too big for Git
-pretrained_models/
-*.pth
-*.ckpt
-*.gguf
+# Heavy Assets (Models, Audio, DBs)
+# We ignore the heavy files inside assets, but keep the folder structure
+assets/llm/*.gguf
+assets/llm/*.bin
+assets/tts/base_voices/*.pt
+assets/tts/voice_profiles/*.pt
+assets/stt/faster_whisper_models/
+assets/memory_db/
+assets/vision/template_images/*.png
+assets/vision/template_images/*.jpg
 
-# --- System ---
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-charvoice/silverwolf/
+# Temporary testing outputs
+*.wav
+*.mp3
+*.ogg
+*.log

@@ -1,73 +1,73 @@
-# A.L.I.C.E. - Autonomous Local Interactive Character Emulator
+# 🧠 Project A.L.I.C.E.
+**Artificial Local Intelligence & Conversational Entity**
 
-ALICE is a fully local, voice-to-voice virtual assistant. She features a modular architecture that separates "Hearing" (Whisper), "Thinking" (Ollama/Llama.cpp), and "Speaking" (GPT-SoVITS), all while maintaining long-term memory of your conversations.
+A production-ready, open-source AI Operating System and Virtual Avatar framework. ALICE is designed to be a completely autonomous digital entity capable of listening, thinking, speaking, and interacting with the physical and digital world in real-time.
+
+Inspired by architectures like *Neuro-sama* and *Project BEA*, ALICE runs a decoupled, asynchronous Event Bus that allows her to parse computer vision, control smart home devices, and maintain long-term memory without blocking her real-time conversational capabilities.
+
+---
 
 ## ✨ Core Features
-
-* **🧠 Contextual Memory:** Automatically summarizes and archives conversation highlights to `memory.txt` to remember facts about you indefinitely.
-* **🎙️ Pure Whisper STT:** 100% offline speech recognition with automatic silence detection and noise calibration.
-* **🗣️ Cloned TTS:** Powered by GPT-SoVITS for emotional, high-fidelity voice synthesis.
-* **⚙️ Auto-Hardware Detection:** On startup, the system detects your GPU/CPU and rewrites `config.yaml` to optimize performance.
-* **🎮 Idle Animations:** ALICE will get impatient and speak to you if you stay silent for too long.
+* **🧠 Decoupled Event-Bus Architecture:** Think, listen, and act simultaneously.
+* **🗣️ Sub-second Voice Cloning:** Powered by **Kokoro-82M**, allowing for zero-latency, highly emotive, and customizable voice profiles.
+* **👁️ Vision & Actuation:** Hooks into computer vision (VLM/OpenCV) to watch your screen or webcam, and uses the **Motor Agent** to play games like Minecraft.
+* **💾 3-Tier Memory System (SEAL):** Short-term RAM, ChromaDB semantic vector storage, and an autonomous background "Reflection" engine that permanently rewrites her source persona based on your interactions.
+* **🏠 Agentic Limbs:** Built-in tools for DuckDuckGo web scraping and Home Assistant (IoT) manipulation via the Model Context Protocol (MCP).
+* **🎭 Avatar Integration:** Streams JSON viseme (mouth shapes) and emotion tags over a local WebSocket to 3D VRM rendering engines (like VTube Studio or Three.js).
 
 ---
 
-## 🛠️ Installation & Setup
+## 🗂️ Directory Structure
+```text
+ALICE/
+│── run.py                          # 🚀 THE IGNITION SWITCH
+│── test_diagnostics.py             # Pre-flight system check
+├── core/                           # 🧠 Message Bus & Hardware Orchestration
+├── config/                         # ⚙️ System Settings & Identity (YAML/.env)
+├── memory/                         # 💭 ChromaDB & SEAL Reflection Engine
+├── modules/                        # 🧩 Senses (Llama.cpp, Whisper, Kokoro, LLaVA)
+├── subsystems/                     # 🦾 Limbs (Gaming Motor, IoT, Web Search)
+├── interfaces/                     # 🔌 Bodies (Mic/Speaker, Discord, VRM WebSocket)
+├── tools/                          # 🛠️ Utilities (Voice Studio WebUI)
+└── webui/                          # 🎛️ Gradio Control Dashboard
 
-### 1. Environment & Dependencies
-Ensure you have **Python 3.10** and an **Nvidia GPU** (optional, but recommended).
 
-```bash
-# Create and activate virtual environment
+🚀 Quick Start Guide
+1. Install Dependencies
+Ensure you have Python 3.11+ installed. Create a virtual environment and install the required packages:
+
+Bash
 python -m venv .venv
-.\.venv\Scripts\activate
+source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+pip install torch torchvision torchaudio --index-url [https://download.pytorch.org/whl/cu118](https://download.pytorch.org/whl/cu118)
+pip install -r requirements.txt
+(Note: You must also install FFmpeg on your operating system for audio processing).
 
-# Install core libraries
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-pip install gpt_sovits_python[all] openai-whisper pyaudio pyyaml requests sounddevice soundfile
+2. Configure Environment
+Rename config/openfang.toml.example to config/system.yaml (or just edit the existing YAML).
 
-# Apply critical dependency fixes
-pip install transformers==4.46.3
-pip install git+https://github.com/chameleon-ai/LangSegment-0.3.5-backup.git
+Create a config/.env file and add any necessary keys (e.g., DISCORD_TOKEN, OPENAI_API_KEY).
 
-# Download NLTK data
-python -c "import nltk; nltk.download('averaged_perceptron_tagger_eng'); nltk.download('cmudict')"
-```
+3. Forge a Voice
+Download the base voice models and launch the Voice Studio to mix a custom persona for ALICE:
 
-### 2. Model Placement
-Download the GPT-SoVITS base models and place them in `ALICE/pretrained_models/`. Update the paths in `main.py` accordingly.
+Bash
+python tools/download_voices.py
+python tools/voice_studio.py
+Open http://127.0.0.1:7861 to blend her voice and save it as alice_custom.pt.
 
----
+4. Run Diagnostics
+Check your hardware and ensure all components are wired correctly:
 
-## ⚙️ Configuration (`config.yaml`)
+Bash
+python test_diagnostics.py
+5. Ignite the Matrix
+Launch the central orchestrator. This will boot the LLM, start the web dashboard, and connect the microphone/Discord interfaces.
 
-The `config.yaml` acts as the master dashboard. You can toggle features and change ALICE's personality here:
+Bash
+python run.py
+Open http://127.0.0.1:7860 to view ALICE's internal thoughts and toggle subsystems.
 
-* **`llm`**: Set your backend (Ollama/Llama.cpp) and your character prompt.
-* **`stt`**: Toggle `use_microphone` and adjust `idle_timeout`.
-* **`tts`**: Set your reference audio and target speaker ID.
-* **`system`**: Automatically updated by `hardware.py` on boot.
+🛡️ License & Acknowledgements
+Built natively for local execution to prioritize privacy, zero-latency execution, and hardware ownership. Portions of this architecture are inspired by the open-source embodied AI community.
 
----
-
-## 🚀 Usage
-
-1.  **Hardware Check:** Run `python check_cuda.py` to ensure your GPU is visible.
-2.  **Audio Routing:** Run `python check_audio.py` to find your Microphone and Speaker IDs, then paste them into `config.yaml`.
-3.  **Start ALICE:**
-    ```bash
-    python brain.py
-    ```
-
-### Terminal Commands
-* **Talk:** Simply speak when the prompt says `[🎙️ ALICE is listening...]`.
-* **Exit:** Say "Goodbye", "Exit", or "I'm going to bed" to trigger the memory compression and shutdown.
-
----
-
-## 📁 Project Structure
-
-* `brain.py`: The main orchestrator. Handles STT and LLM logic.
-* `main.py`: The TTS engine. Manages GPU memory and voice synthesis.
-* `hardware.py`: The auto-configurator. Detects CUDA and manages YAML settings.
-* `check_audio.py`: Diagnostic tool for finding hardware IDs.

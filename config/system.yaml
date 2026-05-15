@@ -1,0 +1,60 @@
+# ==========================================
+# A.L.I.C.E. MASTER SYSTEM CONFIGURATION
+# ==========================================
+version: "2.0.0"
+
+# 🌐 Network & API Endpoints
+network:
+  # The local port where the GPT-SoVITS TTS engine is running
+  gpt_sovits_api: "http://127.0.0.1:5000/tts"
+  
+  # Local WebSocket port for sending avatar facial expressions/lip-sync
+  avatar_websocket_port: 8080
+  
+  # Home Assistant MCP connection
+  home_assistant_url: "http://homeassistant.local:8123/api"
+
+# 🧠 Neural Weights & Models (Point to the assets folder)
+models:
+  # The core brain. Recommend Llama-3-8B-Instruct or similar.
+  primary_llm: "assets/llm/google_gemma-4-E2B-it-Q4_K_M.gguf"
+  
+  # The visual cortex. Recommend LLaVA 1.5.
+  vision_llm: "assets/llm/google_gemma-4-E2B-it-Q4_K_M.gguf"
+  
+  # Speech-to-Text model size. Options: tiny.en, base.en, small.en, large-v3
+  whisper_stt: "base.en" 
+  
+  # Directory where ChromaDB will store her long-term vector memories
+  vector_db_path: "assets/memory_db"
+
+
+# 🔌 Active Modules (Toggle True/False to save compute power)
+active_modules:
+  # Physical Inputs/Outputs
+  enable_local_mic: true        # Listens to your physical microphone
+  enable_local_speaker: true    # Plays TTS through your physical speakers
+  
+  # Digital Interfaces
+  enable_discord: true          # Connects to Discord as a Bot
+  enable_avatar_sync: true      # Streams JSON data to VTube Studio / Three.js
+  
+  # Agentic Subsystems
+  enable_vision_loop: false     # Keep false by default; heavy continuous GPU load
+  enable_home_assistant: false  # Allows her to control physical smart home devices
+  enable_web_search: true       # Allows her to scrape DuckDuckGo for live info
+  enable_motor_agent: false     # Only enable when playing osu! or Minecraft
+
+
+voice:
+  engine: "kokoro" # Swapped from gpt-sovits
+  language: "a"    # 'a' = American English, 'b' = British English
+  # The specific .pt voice profile ALICE will use:
+  active_profile: "assets/tts/voice_profiles/alice_v3.pt" 
+  speed: 1.0
+
+
+# 💭 Cognitive Settings
+memory:
+  short_term_history_limit: 15  # How many recent messages stay in fast RAM
+  seal_idle_timeout_sec: 300    # Wait 5 minutes of silence before running SEAL reflection

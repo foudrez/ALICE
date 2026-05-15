@@ -1,0 +1,81 @@
+ALICE/
+│── assets/                         # 📦 HEAVY ASSETS & MODELS (Excluded from Git)
+│   ├── llm/                        # Local LLM Brains
+│   │   ├── primary_llama3_8b.gguf  # Main reasoning model
+│   │   └── vision_llava_7b.gguf    # Vision model for screen parsing
+│   │
+│   ├── tts/                        # Voice Engine Files (GPT-SoVITS)
+│   │   ├── pretrained_models/      # Base GPT-SoVITS models (s1bert25hz, etc.)
+│   │   ├── fine_tuned/             # ALICE's specific trained weights (.pth / .ckpt)
+│   │   └── voice_samples/          # Clean 5-15 second .wav clips for 0-shot cloning
+│   │
+│   ├── stt/                        # Listening Engine Files
+│   │   └── faster_whisper_models/  # Local Whisper weights (e.g., base.en, large-v3)
+│   │
+│   ├── avatars/                    # The Visual Body
+│   │   ├── vrm/                    # 3D Models
+│   │   │   ├── alice_v1.0.vrm      # Main 3D avatar
+│   │   │   └── animations/         # .fbx or .bvh idle/speaking animation files
+│   │   └── live2d/                 # 2D Models (for VTube Studio)
+│   │       └── alice_2d_pack/
+│   │
+│   └── vision/                     # Templates for image matching/gaming heuristics
+│       └── template_images/        # E.g., "health_bar_empty.png", "creeper.png"
+├── core/                           # 🧠 THE KERNEL (Message Bus & Hardware)
+│   ├── orchestrator.py             # Main event loop (Routes STT -> LLM -> TTS -> UI)
+│   ├── event_bus.py                # Pub/Sub system (Allows parallel processing on different devices)
+│   └── hardware_hal.py             # Hardware Abstraction Layer (Auto-detects CPU/GPU/VRAM)
+│
+├── config/                         # ⚙️ SYSTEM STATE
+│   ├── system.yaml                 # Core settings (Ports, network IPs, active modules)
+│   ├── identity/                   
+│   │   ├── character.yaml          # Persona, traits, and system prompts
+│   │   └── lora_weights/           # Custom LoRA files for personality fine-tuning
+│   └── .env                        # API Keys (OpenAI, Home Assistant, Discord)
+│
+├── memory/                         # 💭 COGNITION & ADAPTATION (SEAL/BEA)
+│   ├── memory_manager.py           # Short-term active context (L1 Cache)
+│   ├── vector_db/                  # Long-term semantic storage (ChromaDB / SQLite)
+│   └── seal_engine.py              # Background task: Evaluates recent chats, extracts facts, updates identity
+│
+├── modules/                        # 🧩 THE SENSES (Swappable Core Engines)
+│   ├── brain/                      # LLM Handlers
+│   │   ├── local_llm.py            # llama.cpp / vLLM integration
+│   │   └── remote_llm.py           # API integration (OpenAI / Anthropic)
+│   ├── ears/                       # STT Handlers
+│   │   └── whisper_stt.py          # Faster-Whisper with VAD (Voice Activity Detection)
+│   ├── voice/                      # TTS Handlers
+│   │   ├── gpt_sovits_api.py       # High-fidelity voice cloning
+│   │   └── fallback_tts.py         # Lightweight TTS (Edge-TTS) for low-compute scenarios
+│   └── eyes/                       # Vision Handlers
+│       ├── screen_parser.py        # Captures screen regions for gaming context
+│       └── camera_feed.py          # Connects to local RTSP streams/webcams via Vision-Language Models (VLM)
+│
+├── subsystems/                     # 🦾 THE LIMBS (Agentic Action Execution)
+│   ├── gaming/
+│   │   ├── motor_agent.py          # Tier 1: Zero-latency execution (osu!/aim) via local heuristics
+│   │   ├── nav_agent.py            # Tier 2: Hierarchical navigation (Minecraft/Mineflayer)
+│   │   └── api_agent.py            # Tier 3: Turn-based game state translation
+│   └── iot/
+│       ├── home_assistant.py       # MCP (Model Context Protocol) integration for smart home
+│       └── web_search.py           # Agentic web browsing
+│
+├── interfaces/                     # 🔌 EXTERNAL CONNECTIONS
+│   ├── discord_bot.py              # Joins VCs, handles text channels
+│   └── local_mic_speaker.py        # Direct physical audio routing
+│
+└── webui/                          # 🖥️ THE FRONTEND (Display & Settings)
+    ├── backend/
+    │   └── server.py               # FastAPI server serving the UI and bridging WebSockets
+    ├── frontend/
+    │   ├── public/
+    │   │   ├── models/             # .vrm files (v0.0 and v1.0)
+    │   │   └── live2d/             # Live2D assets
+    │   ├── src/
+    │   │   ├── App.jsx             # Main React interface
+    │   │   ├── AvatarCanvas.jsx    # Three.js / PixiJS renderer for VRM/Live2D
+    │   │   ├── SettingsPanel.jsx   # Dynamic UI to edit config.yaml live
+    │   │   └── AudioVisualizer.jsx # Real-time lip-sync mapping
+    │   └── package.json
+    │
+└── run.py                          # Bootloader (Starts selected microservices)
