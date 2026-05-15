@@ -38,29 +38,33 @@ class SealEngine:
 
     async def _run_evolution_cycle(self):
         """The core SEAL loop: Extract, Synthesize, Update."""
-        
+
         # 1. Fetch recent memories (e.g., the last 20 interactions)
         # For demonstration, we simulate fetching recent DB entries
         recent_context = "User mentioned they want to build a Minecraft bot. User prefers Python."
-        
+
         prompt = f"""
         You are ALICE's subconscious background processor.
         Review the following recent interactions with the user:
         {recent_context}
-        
-        Extract ONLY permanent, important facts about the user or how ALICE should 
-        behave in the future. Return them as a simple bulleted list. 
+
+        Extract ONLY permanent, important facts about the user or how ALICE should
+        behave in the future. Return them as a simple bulleted list.
         If nothing new is learned, output 'NO_NEW_FACTS'.
         """
-        
+
         # 2. Ask the LLM to extract facts
         logging.info("[SEAL] Analyzing recent memories for permanent facts...")
-        # In reality, you await the LLM generation here:
+
+        # [STUB] LLM inference disabled - using mock data
+        # To enable: (1) Remove this section and uncomment code below
+        # (2) Ensure self.llm is properly initialized with a generation method
         # new_facts = await self.llm.generate_internal_thought(prompt)
-        
-        # Simulated LLM output:
-        new_facts = "- The user is interested in Minecraft automation.\n- The user programs in Python."
-        
+
+        # Using mock data instead
+        new_facts = "[MOCK] - The user is interested in Minecraft automation.\n- The user programs in Python."
+        logging.warning(f"[SEAL] USING MOCK LLM - Real inference disabled. Output: {new_facts}")
+
         if "NO_NEW_FACTS" not in new_facts:
             self._update_character_dna(new_facts)
 

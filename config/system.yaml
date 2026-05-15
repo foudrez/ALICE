@@ -2,7 +2,7 @@
 # A.L.I.C.E. MASTER SYSTEM CONFIGURATION
 # ==========================================
 version: "2.0.0"
-
+force_local_models: true  # If true, ALICE will only use local models and disable web search fallback
 # 🌐 Network & API Endpoints
 network:
   # The local port where the GPT-SoVITS TTS engine is running
@@ -36,13 +36,13 @@ active_modules:
   enable_local_speaker: true    # Plays TTS through your physical speakers
   
   # Digital Interfaces
-  enable_discord: true          # Connects to Discord as a Bot
+  enable_discord: false         # Connects to Discord as a Bot
   enable_avatar_sync: true      # Streams JSON data to VTube Studio / Three.js
   
   # Agentic Subsystems
   enable_vision_loop: false     # Keep false by default; heavy continuous GPU load
   enable_home_assistant: false  # Allows her to control physical smart home devices
-  enable_web_search: true       # Allows her to scrape DuckDuckGo for live info
+  enable_web_search: false      # Allows her to scrape DuckDuckGo for live info
   enable_motor_agent: false     # Only enable when playing osu! or Minecraft
 
 

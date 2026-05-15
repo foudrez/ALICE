@@ -57,8 +57,12 @@ class VisionEngine:
         """Takes a snapshot and asks the VLM to interpret it."""
         logging.info("[Eyes] Capturing screen for analysis...")
         b64_img = self._capture_and_compress()
-        
-        # Simulated VLM Inference
+
+        # [STUB] VLM inference disabled - multimodal model not downloaded
+        # To enable: (1) Download llava-7b.gguf and mmproj-model-f16.gguf to assets/llm/
+        # (2) Uncomment the Llama imports at top of file
+        # (3) Uncomment the model initialization lines in __init__
+        # (4) Uncomment the response code below
         # response = self.vlm.create_chat_completion(
         #     messages=[
         #         {"role": "system", "content": "You are ALICE. You are looking at the user's screen."},
@@ -69,13 +73,12 @@ class VisionEngine:
         #     ]
         # )
         # description = response["choices"][0]["message"]["content"]
-        
-        # Mock description for testing
-        await asyncio.sleep(1) 
-        description = "I see a code editor open with a Python script, and a web browser showing documentation."
-        
-        logging.info(f"[Eyes] VLM Output: {description}")
-        
+
+        # Using mock data instead
+        await asyncio.sleep(1)
+        description = "[MOCK] I see a code editor open with a Python script, and a web browser showing documentation."
+        logging.warning(f"[Eyes] USING MOCK VISION - Real VLM inference disabled. Output: {description}")
+
         # Inject this description into ALICE's working memory via the bus
         await self.bus.publish("SCREEN_CONTEXT_UPDATED", description)
 

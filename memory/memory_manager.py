@@ -3,23 +3,38 @@ from typing import List, Dict
 from memory.vector_db.chroma_store import VectorMemory
 import yaml
 import logging
+import uuid
 
 class MemoryManager:
     def __init__(self):
         self.identity = self._load_identity()
         self.conversation_history: List[Dict[str, str]] = []
-        self.max_history = 10 # L1 Cache: Rolling window of recent chat
-        
+        self.max_history = 100  # Increased from 10: rolling window of recent chat
+
         # Initialize L2 Cache: Long-term persistent memory
-        self.l2_memory = VectorMemory() 
+        self.l2_memory = VectorMemory()
+        self.seen_message_ids: set = set()
 
 
-    def add_message(self, role: str, content: str):
-        """Saves a message to both short-term RAM and long-term disk."""
+    def add_message(self, role: str, content: str, msg_id: str = None) -> str:
+        """Saves a message to both short-term RAM and long-term disk. Returns message ID."""
+        if msg_id is None:
+            msg_id = str(uuid.uuid4())
+
+        if msg_id in self.seen_message_ids:
+            return msg_id
+
+        self.seen_message_ids.add(msg_id)
+
         # 1. Save to L1 Cache (Short-term RAM)
-        self.conversation_history.append({"role": role, "content": content})
+        self.conversation_history.append({
+            "role": role,
+            "content": content,
+            "id": msg_id
+        })
         if len(self.conversation_history) > self.max_history:
-            self.conversation_history.pop(0)
+            old_msg = self.conversation_history.pop(0)
+            self.seen_message_ids.discard(old_msg.get("id"))
             
         # 2. Save to L2 Cache (Vector DB)
         self.l2_memory.add_memory(content, role)

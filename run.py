@@ -43,10 +43,8 @@ async def shutdown(alice_instance):
 
 async def run_app():
     print(ASCII_BANNER)
-    
     # Instantiate the Central Nervous System
     alice = AliceOrchestrator()
-    
     try:
         # Ignite the main execution loop
         await alice.run()
