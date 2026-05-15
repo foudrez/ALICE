@@ -79,7 +79,7 @@ class AliceDashboard:
         return f"Device: {device_name}\nVRAM: {vram_display}\nMode: {self.hardware_state['mode'].upper()}"
 
     def build_ui(self):
-        with gr.Blocks(title="ALICE OS Dashboard") as interface:
+        with gr.Blocks(title="ALICE OS Dashboard", theme=gr.themes.Soft(primary_hue="blue")) as interface:
             gr.Markdown("# 🧠 Project A.L.I.C.E. Control Center")
 
             with gr.Row():
