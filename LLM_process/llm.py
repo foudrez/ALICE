@@ -2,6 +2,8 @@ import requests
 import random
 import os
 import json
+from tools.web_search import perform_web_search
+
 # --- 1. NATIVE LLAMA.CPP ENGINE SETUP ---
 try:
     from llama_cpp import Llama
@@ -46,26 +48,87 @@ def init_llamacpp(config):
             print("[✅ Native Llama.cpp Ready]")
         else:
             print(f"[❌ Error] Base GGUF model not found at {model_path}")
+
+# --- 2. WEB SEARCH ROUTER ---
+def check_search_intent(user_text, config):
+    """
+    A lightning-fast internal thought to decide if web search is needed.
+    Returns the search query string, or None.
+    """
+    sys_prompt = (
+        "You are a search router. If the user asks for current events, weather, "
+        "real-time facts, or something you don't know, reply ONLY with a short search query. "
+        "If they are just chatting normally, reply ONLY with the exact word: NO_SEARCH."
+    )
+    
+    backend = config['llm']['backend'].lower()
+    model = config['llm']['model']
+    
+    try:
+        if backend == "ollama":
+            url = "http://localhost:11434/api/generate"
+            payload = {
+                "model": model, 
+                "prompt": user_text, 
+                "system": sys_prompt, 
+                "stream": False,
+                "options": {"num_predict": 15} # Limit to 15 tokens for ultra-fast response
+            }
+            res = requests.post(url, json=payload).json().get('response', '').strip()
+            
+        elif backend in ["llama.cpp", "llamacpp"]:
+            global llamacpp_engine
+            if not llamacpp_engine: 
+                return None
+            
+            prompt = f"System: {sys_prompt}\nUser: {user_text}\nRouter:"
+            output = llamacpp_engine(prompt, max_tokens=15, stop=["\n"], echo=False)
+            res = output['choices'][0]['text'].strip()
+            
+        # Clean up the response
+        res = res.replace('"', '').replace("'", "")
+        if "NO_SEARCH" in res or not res:
+            return None
+        return res
+        
+    except Exception as e:
+        print(f"[Router Error] {e}")
+        return None
+
+# --- 3. MAIN GENERATION LOOP ---
 def generate_response(user_input, config, chat_history=[], stream_output=False):
     backend = config['llm']['backend'].lower()
     model = config['llm']['model']
-    base_prompt = config['llm']['character_prompt']
+    base_prompt = config['llm'].get('character_prompt', "You are ALICE, a helpful AI.")
+    
     if backend in ["llama.cpp", "llamacpp"]:
         global llamacpp_engine
         if llamacpp_engine is None:
             print("[System] Brain is asleep. Waking up ALICE automatically...")
             init_llamacpp(config)
             
+    # --- CHECK WEB SEARCH INTENT ---
+    search_query = check_search_intent(user_input, config)
+    web_context = ""
+    
+    if search_query:
+        web_results = perform_web_search(search_query)
+        web_context = f"\n\n=== LIVE INTERNET SEARCH RESULTS ===\n[SYSTEM NOTE: You just searched the web for '{search_query}'. Here is the real-time data to help you answer the user:]\n{web_results}\n===================================="
             
+    # --- LOAD LONG TERM MEMORY ---
     past_memory = ""
     if os.path.exists("memory.txt"):
         with open("memory.txt", "r", encoding="utf-8") as f:
             past_memory = f.read().strip()
             
-    word_limit = random.randint(10, 40)
+    word_limit = random.randint(20, 300)
     system_prompt = f"{base_prompt}\n\nCRITICAL RULE: Answer in under {word_limit} words."
+    
     if past_memory:
         system_prompt += f"\n\n=== CRITICAL CONTEXT: LONG-TERM MEMORY ===\n{past_memory}\n=============================="
+        
+    if web_context:
+        system_prompt += web_context
 
     # --- THE TOKEN GENERATOR ---
     def stream_tokens():

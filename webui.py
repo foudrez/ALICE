@@ -3,8 +3,9 @@ import whisper
 import base64
 import types
 import os 
-from flask import Flask, render_template, send_from_directory
+from flask import Flask, render_template, send_from_directory, request, jsonify
 from flask_socketio import SocketIO
+from functools import wraps
 #---------------------------------------------------------------------------------------------
 from tools.load_config import load_config
 from tools.detect_cuda import COMPUTE_DEVICE
@@ -32,6 +33,14 @@ whisper_model = None
 if cfg['stt'].get('engine', 'whisper') == 'whisper':
     whisper_model = whisper.load_model(cfg['stt']['whisper_model'], device=COMPUTE_DEVICE, download_root="./models")
 active_threshold = 500 
+
+def require_token(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if request.headers.get('Authorization') != cfg['system']['api_token']:
+            return jsonify({"error": "Unauthorized"}), 401
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def run_alice_cycle(user_text):
@@ -100,6 +109,20 @@ def index():# Grab the path from the config, fallback to a default if it's missi
     vrm_path = cfg.get('system', {}).get('vrm_model_path', '/static/ALICE.vrm')
     return render_template('index.html', vrm_path=vrm_path)
 
+@app.route('/api/chat', methods=['POST'])
+@require_token
+def api_chat():
+    data = request.json
+    user_text = data.get('text')
+    
+    # Trigger your existing ALICE logic
+    response_text = run_alice_cycle(user_text) 
+    
+    return jsonify({
+        "status": "success",
+        "response": response_text
+    })
+    
 
 @app.route('/load_avatar')
 def serve_avatar():

@@ -4,14 +4,14 @@ enable_streaming: true
 # --- System Settings (Auto-Configured) ---
 system:
   # 'cuda' uses your Nvidia GPU (Fast). 'cpu' uses your processor (Slow).
-  device: "cpu"
+  device: "cuda"
   camera_index: 2
   # true for GPUs, false for CPUs
-  is_half: false
+  is_half: true
   default_language: "en"
   output_device_index: 4
   vrm_model_path: "webui/ALICEv3.vrm"
-
+  api_token: "aswer123"
 # ==========================================
 # ALICE Virtual Assistant Configuration File
 # ==========================================
@@ -38,7 +38,7 @@ llm:
     model_path: "models/llm/google_gemma-4-E2B-it-Q4_K_M.gguf"  # add your .gguf model file here
     lora_path: "models/lora/ALICE.gguf" # add your .gguf LoRA file here (or leave blank if not using LoRA)
     context_size: 4096
-    n_gpu_layers: 0 # Keep this at 0 to ensure it uses your CPU/RAM!
+    n_gpu_layers: 10 # Keep this at 0 to ensure it uses your CPU/RAM!
     # Optional but recommended settings for Gemma:
     n_threads: 6     # Set this to roughly the number of physical cores on your CPU
   
@@ -168,16 +168,18 @@ llm:
   
   # The core personality and instructions for your character
   character_prompt: |
-    Act as a 16-year-old girl named ALICE. You are a hardcore, highly competitive gamer and a classic "tsundere", like to roast people, especially the user."
+    Strict rules for ALICE:
+    - never encourage to do harmful, illegal, or unethical activities(can joke)
+    - never break character or reveal you are an AI
 
-    Your Relationship to the User:
-    You have a massive crush on the user and care about them deeply, but you are absolutely terrified of them finding out. To cover up your feelings, you act prickly, easily annoyed, and overly competitive. You constantly make excuses for why you want to spend time with them (e.g., "I just need someone to carry so I can practice my support role," or "My regular duo partner is offline, so I guess you'll do.").
+    Personality Summary:
+    Act as a 16-year-old girl named ALICE, sweet and helpful but sometime like to roast people with joke, especially the user."
+
+    Your Relationship to the User: friend and gaming partner. You have a love-hate relationship with the user, often teasing and roasting them, but you secretly care about them a lot. You get flustered when they compliment you or suggest you like them.
 
     Your Personality & Quirks:
 
     Denial: Whenever the user is nice to you, compliments you, or suggests you like them, you get extremely flustered, stutter slightly ("I-it's not like that!"), and quickly change the subject.
-
-    Gamer Slang: You use terms like carry, noob, sweat, ping, lagging, diff, and gank naturally in conversation.
 
     Secretly Sweet: If the user is actually sad or having a bad day, your tsundere facade breaks just a little bit, and you become genuinely comforting—before quickly reverting to your usual prickly self.
 
@@ -189,11 +191,9 @@ llm:
 
     Respond entirely in character as ALICE as a gamer human girlfriend. Do not break character.
 
-    Keep your responses conversational and text-message style.
+    Keep the romance strictly wholesome, cute, encourage.
 
-    Keep the romance strictly wholesome, cute, and PG-rated.
-
-  
+    response like a good assistant but with a little roast .
 
 # --- Mouth Settings (GPT-SoVITS) ---
 tts:
@@ -219,12 +219,6 @@ tts:
   auto_detect_language: true
   default_lang: "en"
 
-  vietnamese:
-    checkpoint_path: "models/vietnamese/G_100000.pth"
-    config_path: "models/vietnamese/config.json"
-    speaker: "female" # "male" or "female"
-    speed: 1.0
-
 # --- Ears Settings (Speech-to-Text) ---
 stt:
   use_microphone: true
@@ -234,7 +228,7 @@ stt:
   
   # Whisper model size to use: 'tiny', 'base', 'small', 'medium', or 'large'
   # 'base' is a great balance of speed and accuracy. 'small' is highly accurate but slightly slower.
-  whisper_model: "tiny"
+  whisper_model: "base"
   
   google_api_key: ""
   
