@@ -29,22 +29,29 @@ dirLight.position.set(1, 2, 2);
 scene.add(dirLight);
 
 // 3. Load VRM
-function loadAvatar(version = 1.0) {
+let currentVrm = null;
+
+async function loadAvatar(version = 1.0) {
     const loader = new GLTFLoader();
     loader.register((parser) => new VRMLoaderPlugin(parser));
     
+    // Dispose old model to prevent memory leaks
+    if (currentVrm) {
+        scene.remove(currentVrm.scene);
+        VRMUtils.deepDispose(currentVrm.scene);
+    }
+    
     loader.load('/load_avatar', (gltf) => {
-        const vrm = gltf.userData.vrm;
-        if (motion.vrm) scene.remove(motion.vrm.scene);
+        currentVrm = gltf.userData.vrm;
+        VRMUtils.removeUnnecessaryVertices(gltf.scene);
         
-        scene.add(vrm.scene);
-        // VRM 0.0 requires a 180-degree rotation fix
-        if (version < 1.0) vrm.scene.rotation.y = Math.PI;
-        else vrm.scene.rotation.y = 0;
-
-        VRMUtils.rotateVRM0(vrm);
-        vrm.scene.traverse(o => { o.frustumCulled = false; });
-        motion.setVRM(vrm);
+        scene.add(currentVrm.scene);
+        
+        // Handle VRM 0.0 vs 1.0 orientation
+        if (version < 1.0) VRMUtils.rotateVRM0(currentVrm);
+        
+        currentVrm.scene.traverse(o => { o.frustumCulled = false; });
+        motion.setVRM(currentVrm);
     });
 }
 loadAvatar(1.0);
@@ -60,9 +67,15 @@ let audioCtx, analyser, dataArray;
 
 function animate() {
     requestAnimationFrame(animate);
-    const delta = clock.getDelta();
-    motion.update(delta, clock.elapsedTime, analyser, isPlaying, dataArray);
+    
+    const deltaTime = clock.getDelta();
+    const time = clock.getElapsedTime(); // Get total time running
+    
     controls.update();
+
+    // Call your motion controller update
+    motion.update(deltaTime, time, analyser, isPlaying, dataArray);
+
     renderer.render(scene, camera);
 }
 animate();

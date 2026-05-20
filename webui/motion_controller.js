@@ -3,178 +3,153 @@ import * as THREE from 'three';
 export class MotionController {
     constructor() {
         this.vrm = null;
-        this.blinkTimer = 3.0;
-        this.isBlinking = false;
         
         // Lip Sync & Vowel State
         this.mouthThreshold = 70.0; 
         this.vowelWeights = { aa: 0, ee: 0, ih: 0, oh: 0, ou: 0 };
         
-        // Smoothing constant (Lower = more fluid/heavy)
-        this.s = 0.08; 
-        
         this.currentEmotion = 'neutral';
-        this.emotionWeights = { neutral: 1, happy: 0, sad: 0, angry: 0, surprised: 0 };
         
-        // Target for eye contact
-        this.lookAtTarget = new THREE.Vector3(0, 1.45, 5);
-
-        // Wind State
-        this.windVector = new THREE.Vector3();
+        // Blink State
+        this.isBlinking = false;
+        this.nextBlinkTime = 3.0;
     }
 
     setVRM(vrmModel) {
         this.vrm = vrmModel;
+        this.setupRestPose();
     }
 
     setEmotion(emotionName) {
-        if (this.emotionWeights.hasOwnProperty(emotionName)) {
-            this.currentEmotion = emotionName;
+        this.currentEmotion = emotionName;
+        // Reset all emotions to 0
+        const emotions = ['neutral', 'happy', 'sad', 'angry', 'surprised', 'relaxed'];
+        emotions.forEach(e => {
+            if (this.vrm.expressionManager.getExpression(e)) {
+                this.vrm.expressionManager.setValue(e, 0);
+            }
+        });
+        // Set new emotion to 1
+        if (this.vrm.expressionManager.getExpression(emotionName)) {
+            this.vrm.expressionManager.setValue(emotionName, 1.0);
         }
+    }
+
+    setupRestPose() {
+        if (!this.vrm || !this.vrm.humanoid) return;
+        
+        // 1. Drop Arms into a relaxed A-Pose
+        const leftUpperArm = this.vrm.humanoid.getNormalizedBoneNode('leftUpperArm');
+        const rightUpperArm = this.vrm.humanoid.getNormalizedBoneNode('rightUpperArm');
+        if (leftUpperArm) leftUpperArm.rotation.z = 1.2;  // Drop down ~70 degrees
+        if (rightUpperArm) rightUpperArm.rotation.z = -1.2;
+
+        const leftLowerArm = this.vrm.humanoid.getNormalizedBoneNode('leftLowerArm');
+        const rightLowerArm = this.vrm.humanoid.getNormalizedBoneNode('rightLowerArm');
+        if (leftLowerArm) leftLowerArm.rotation.x = -0.2; // Bend elbow slightly forward
+        if (rightLowerArm) rightLowerArm.rotation.x = -0.2;
+
+        // 2. Curl Fingers Naturally (Nobody holds their hands perfectly flat)
+        const fingerPrefixes = ['Thumb', 'Index', 'Middle', 'Ring', 'Little'];
+        const sides = ['left', 'right'];
+        const segments = ['Proximal', 'Intermediate', 'Distal'];
+
+        sides.forEach(side => {
+            fingerPrefixes.forEach(finger => {
+                segments.forEach(segment => {
+                    const boneName = `${side}${finger}${segment}`;
+                    const bone = this.vrm.humanoid.getNormalizedBoneNode(boneName);
+                    if (bone) {
+                        if (finger === 'Thumb') {
+                            bone.rotation.y = side === 'left' ? -0.2 : 0.2;
+                            bone.rotation.z = side === 'left' ? -0.2 : 0.2;
+                        } else {
+                            // Default curl for other fingers
+                            bone.rotation.z = side === 'left' ? 0.2 : -0.2;
+                        }
+                    }
+                });
+            });
+        });
+        
+        // 3. Legs slightly apart for stability
+        const leftUpperLeg = this.vrm.humanoid.getNormalizedBoneNode('leftUpperLeg');
+        const rightUpperLeg = this.vrm.humanoid.getNormalizedBoneNode('rightUpperLeg');
+        if (leftUpperLeg) { leftUpperLeg.rotation.z = 0.05; leftUpperLeg.rotation.x = -0.05; }
+        if (rightUpperLeg) { rightUpperLeg.rotation.z = -0.05; rightUpperLeg.rotation.x = -0.05; }
     }
 
     update(deltaTime, time, analyser, isPlaying, dataArray) {
         if (!this.vrm) return;
 
-        this.updateEmotions(deltaTime);
-        this.updateProceduralBody(time, deltaTime, isPlaying);
-        this.updateWind(time);
-        this.updateBlinking(deltaTime);
-        this.updateLipSync(deltaTime, analyser, isPlaying, dataArray);
+        // ==========================================
+        // 1. PROCEDURAL IDLE ANIMATIONS (Breathing & Swaying)
+        // ==========================================
+        const spine = this.vrm.humanoid.getNormalizedBoneNode('spine');
+        const chest = this.vrm.humanoid.getNormalizedBoneNode('chest');
+        const head = this.vrm.humanoid.getNormalizedBoneNode('head');
+        const neck = this.vrm.humanoid.getNormalizedBoneNode('neck');
         
-        // IMPORTANT: Update VRM with deltaTime for hair physics
-        this.vrm.update(deltaTime);
-    }
-
-    updateWind(time) {
-        // Procedural wind oscillation
-        const windStrength = 0.02 + Math.sin(time * 0.5) * 0.01;
-        this.windVector.set(
-            Math.sin(time * 2.0) * windStrength,
-            Math.cos(time * 1.5) * 0.005,
-            Math.sin(time * 0.8) * windStrength
-        );
-
-        // Apply wind to SpringBones (hair/clothing)
-        if (this.vrm.springBoneManager) {
-            this.vrm.springBoneManager.joints.forEach(joint => {
-                // We add a tiny external force to the hair joints
-                if (joint.bone.name.toLowerCase().includes('hair')) {
-                    joint.bone.rotation.x += this.windVector.x * 0.1;
-                    joint.bone.rotation.z += this.windVector.z * 0.1;
-                }
-            });
-        }
-    }
-
-    updateEmotions(deltaTime) {
-        for (let em in this.emotionWeights) {
-            let target = (em === this.currentEmotion) ? 1.0 : 0.0;
-            this.emotionWeights[em] = THREE.MathUtils.lerp(this.emotionWeights[em], target, deltaTime * 4.0);
-            
-            if (em !== 'neutral' && this.vrm.expressionManager) {
-                this.vrm.expressionManager.setValue(em, this.emotionWeights[em]);
-            }
-        }
-    }
-
-    updateProceduralBody(time, deltaTime, isPlaying) {
-        const humanoid = this.vrm.humanoid;
-        const s = this.s;
-
-        // 1. Core Breathing & Spine
-        const breath = Math.sin(time * 1.5) * 0.02;
-        const spine = humanoid.getNormalizedBoneNode('spine');
-        const chest = humanoid.getNormalizedBoneNode('chest');
-        if (spine) spine.rotation.x = THREE.MathUtils.lerp(spine.rotation.x, breath + 0.05, s);
-        if (chest) chest.rotation.x = THREE.MathUtils.lerp(chest.rotation.x, breath * 1.5, s);
-
-        // 2. Arms & Hand Swinging (Natural A-Pose)
-        const leftUpperArm = humanoid.getNormalizedBoneNode('leftUpperArm');
-        const rightUpperArm = humanoid.getNormalizedBoneNode('rightUpperArm');
+        // Breath cycle: ~3-4 seconds per breath
+        const breath = Math.sin(time * 1.5); 
         
-        // Hand swing oscillation
-        const swing = Math.sin(time * 0.8) * 0.05;
-        const armRest = 1.35; // Downward angle in radians
-
-        if (leftUpperArm) leftUpperArm.rotation.z = THREE.MathUtils.lerp(leftUpperArm.rotation.z, armRest + swing + breath, s);
-        if (rightUpperArm) rightUpperArm.rotation.z = THREE.MathUtils.lerp(rightUpperArm.rotation.z, -armRest + swing - breath, s);
-
-        // 3. Hands & Wrists (Slight swaying)
-        ['left', 'right'].forEach(side => {
-            const hand = humanoid.getNormalizedBoneNode(`${side}Hand`);
-            if (hand) {
-                const handSway = Math.sin(time * 1.2 + (side === 'left' ? 0 : 0.5)) * 0.08;
-                hand.rotation.x = THREE.MathUtils.lerp(hand.rotation.x, handSway + 0.1, s);
-            }
-
-            // Finger curling logic
-            ['Index', 'Middle', 'Ring', 'Little'].forEach(f => {
-                const bone = humanoid.getNormalizedBoneNode(`${side}${f}Proximal`);
-                if (bone) {
-                    const curl = 0.2 + Math.sin(time * 0.6 + (side === 'left' ? 0 : 1)) * 0.1;
-                    bone.rotation.z = THREE.MathUtils.lerp(bone.rotation.z, side === 'left' ? curl : -curl, s);
-                }
-            });
-        });
-
-        // 4. Head Focus (Middle Screen)
-        const neck = humanoid.getNormalizedBoneNode('neck');
-        if (neck) neck.rotation.y = THREE.MathUtils.lerp(neck.rotation.y, Math.sin(time * 0.4) * 0.05, s);
-        
-        if (this.vrm.lookAt) {
-            const talkOffset = isPlaying ? (this.vowelWeights.aa * 0.05) : 0;
-            this.lookAtTarget.set(Math.sin(time * 0.3) * 0.05, 1.45 - talkOffset, 5);
-            this.vrm.lookAt.lookAt(this.lookAtTarget);
+        if (spine) {
+            spine.rotation.x = breath * 0.02; // Spine leaning slightly forward/back
+            spine.rotation.y = Math.sin(time * 0.5) * 0.02; // Slow torso twist
         }
-    }
+        if (chest) {
+            chest.rotation.x = breath * 0.03; // Chest expanding/contracting
+        }
 
-    updateBlinking(deltaTime) {
-        if (this.isBlinking) return; 
-        this.blinkTimer -= deltaTime;
-        if (this.blinkTimer <= 0) {
+        if (head) {
+            // Natural head swaying
+            head.rotation.y = Math.sin(time * 0.8) * 0.05; 
+            head.rotation.z = Math.cos(time * 0.5) * 0.03;
+        }
+        if (neck) {
+            neck.rotation.y = Math.sin(time * 0.8 + 1.0) * 0.02; // Neck follows head with a slight delay
+        }
+
+        // ==========================================
+        // 2. RANDOMIZED BLINKING
+        // ==========================================
+        if (time > this.nextBlinkTime) {
             this.isBlinking = true;
-            if (this.vrm.expressionManager) this.vrm.expressionManager.setValue('blink', 1.0); 
-            setTimeout(() => { 
-                if (this.vrm && this.vrm.expressionManager) this.vrm.expressionManager.setValue('blink', 0.0); 
-                this.isBlinking = false;
-            }, 100); 
-            this.blinkTimer = 2.0 + Math.random() * 5.0; 
+            this.nextBlinkTime = time + 0.15; // Blink lasts 150ms
+        } else if (this.isBlinking && time > this.nextBlinkTime - 0.05) {
+            this.isBlinking = false;
+            this.nextBlinkTime = time + 2.0 + Math.random() * 4.0; // Next blink in 2 to 6 seconds
         }
-    }
+        this.vrm.expressionManager.setValue('blink', this.isBlinking ? 1.0 : 0.0);
 
-    updateLipSync(deltaTime, analyser, isPlaying, dataArray) {
-        if (analyser && isPlaying) {
+        // ==========================================
+        // 3. AUDIO-REACTIVE LIP SYNC (aa, ee, ih, oh, ou)
+        // ==========================================
+        if (isPlaying && analyser && dataArray) {
             analyser.getByteFrequencyData(dataArray);
-            let sum = 0;
-            for(let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-            let volume = sum / dataArray.length;
-            
-            if (volume < this.mouthThreshold) {
-                Object.keys(this.vowelWeights).forEach(k => this.vowelWeights[k] = 0);
-            } else {
-                // Improved Vowel Mapping
+            let volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
+
+            if (volume > this.mouthThreshold) {
+                // Map audio frequencies to vowel shapes
                 const low = (dataArray[1] + dataArray[2]) / 2;
                 const mid = (dataArray[4] + dataArray[5]) / 2;
-                const high = (dataArray[8] + dataArray[9]) / 2;
-
-                const intensity = Math.min((volume - this.mouthThreshold) / 25, 0.9);
-
+                
+                const intensity = Math.min((volume - this.mouthThreshold) / 25, 1.0);
                 this.vowelWeights.aa = THREE.MathUtils.lerp(this.vowelWeights.aa, mid > 65 ? intensity : 0, 0.25);
-                this.vowelWeights.ee = THREE.MathUtils.lerp(this.vowelWeights.ee, high > 55 ? intensity * 0.7 : 0, 0.25);
-                this.vowelWeights.ih = THREE.MathUtils.lerp(this.vowelWeights.ih, high > 75 ? intensity * 0.5 : 0, 0.25);
                 this.vowelWeights.oh = THREE.MathUtils.lerp(this.vowelWeights.oh, low > 85 ? intensity * 0.6 : 0, 0.25);
-                this.vowelWeights.ou = THREE.MathUtils.lerp(this.vowelWeights.ou, low > 110 ? intensity : 0, 0.25);
+            } else {
+                this.vowelWeights.aa = THREE.MathUtils.lerp(this.vowelWeights.aa, 0, 0.2);
+                this.vowelWeights.oh = THREE.MathUtils.lerp(this.vowelWeights.oh, 0, 0.2);
             }
-        } else {
-            Object.keys(this.vowelWeights).forEach(k => this.vowelWeights[k] = 0);
+            
+            this.vrm.expressionManager.setValue('aa', this.vowelWeights.aa);
+            this.vrm.expressionManager.setValue('oh', this.vowelWeights.oh);
         }
 
-        if (this.vrm.expressionManager) {
-            Object.entries(this.vowelWeights).forEach(([vowel, weight]) => {
-                const current = this.vrm.expressionManager.getValue(vowel) || 0;
-                this.vrm.expressionManager.setValue(vowel, THREE.MathUtils.lerp(current, weight, deltaTime * 20.0));
-            });
-        }
+        // ==========================================
+        // 4. APPLY SPRING BONE PHYSICS & UPDATES
+        // ==========================================
+        // This is crucial: it calculates the hair/skirt physics and applies the bone rotations
+        this.vrm.update(deltaTime);
     }
 }

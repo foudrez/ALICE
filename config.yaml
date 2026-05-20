@@ -10,7 +10,7 @@ system:
   is_half: true
   default_language: "en"
   output_device_index: 4
-  vrm_model_path: "webui/ALICEv3.vrm"
+  vrm_model_path: "webui/silver_wolf.vrm"
   api_token: "aswer123"
 # ==========================================
 # ALICE Virtual Assistant Configuration File
