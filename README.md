@@ -1,6 +1,6 @@
 <div align="center">
 
-![A.L.I.C.E. Architecture](https://picsum.photos/seed/alice_dark_tech/1920/800)
+![A.L.I.C.E. Architecture]
 
 <br>
 
