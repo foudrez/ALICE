@@ -11,15 +11,38 @@ memory.txt
 temp_mic.wav
 test_audio.wav
 models/
+charvoice/silverwolf/
+
+# --- Local Databases & Memory ---
+alice_memory.db*
+memory/
+
 # --- Large AI Models ---
 # Don't track these; they are too big for Git
 pretrained_models/
 *.pth
 *.ckpt
 *.gguf
+*.safetensors
+*.bin
+*.onnx
+
+# --- Web UI Dependencies ---
+node_modules/
+package-lock.json
+
+# --- Downloaded Third-Party Libraries ---
+three-vrm.js
+
+# --- IDE, Caches & Environment ---
+.vscode/
+.idea/
+.ruff_cache/
+.agents/
+
+# --- Compiled Binaries ---
+*.exe
 
 # --- System ---
 .DS_Store
 Thumbs.db
-
-charvoice/silverwolf/

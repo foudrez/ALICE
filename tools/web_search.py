@@ -1,5 +1,4 @@
 from duckduckgo_search import DDGS
-import logging
 
 def perform_web_search(query, max_results=3):
     """

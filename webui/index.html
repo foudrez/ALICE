@@ -2,10 +2,20 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A.L.I.C.E. Neural Link</title>
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    
     <script type="importmap">
       {
         "imports": {
@@ -15,28 +25,414 @@
         }
       }
     </script>
+    
+    <!-- Live2D Dependencies -->
+    <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/5.3.12/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism4.min.js"></script>
 </head>
 <body>
-    <!-- 1. Background & 3D Canvas -->
+    <video id="stream-video" autoplay playsinline muted style="display:none;"></video>
+    <canvas id="stream-canvas" style="display:none;"></canvas>
+    
     <div id="bg-layer"></div>
-    <canvas id="vrm-canvas"></canvas>
-    <div id="vignette-overlay"></div>
+    
+    <!-- Brutalist Registration Marks -->
+    <div class="registration-mark reg-tl"></div>
+    <div class="registration-mark reg-tr"></div>
+    <div class="registration-mark reg-bl"></div>
+    <div class="registration-mark reg-br"></div>
 
-    <!-- 2. Chat & Controls Layer (Settings completely removed) -->
-    <div id="ui-layer">
-        <div id="subtitle-box">
-            <div id="chat-window"></div>
-            <span id="status">ALICE is listening...</span>
+    <canvas id="vrm-canvas"></canvas>
+
+    <!-- Matrix Toggle / UI Hint -->
+    <button id="ui-hint" aria-label="Toggle Motion Matrix">Motion Matrix</button>
+
+    <!-- Vanilla Motion Matrix Modal -->
+    <div id="matrix-modal" class="hidden">
+        <div class="matrix-header">
+            <h3>MATRIX_CONFIG</h3>
+            <button id="matrix-close" class="close-btn" aria-label="Close Matrix">X</button>
         </div>
-        
-        <!-- Only the Mic, Text Box, and Send button remain -->
-        <div id="controls">
-            <button id="ptt-btn" class="mic-btn">🎙️</button>
-            <input type="text" id="user-input" placeholder="Type a message or hold mic..." autocomplete="off">
-            <button id="send-btn" class="send-btn">➤</button>
+        <div class="matrix-body" id="matrix-content">
+            <div class="matrix-section-title">FBX Engine Core</div>
+            <div class="matrix-row">
+                <div class="matrix-row-header">
+                    <span class="setting-label">Enable FBX Overlay</span>
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="matrix-fbx-toggle">
+                        <span class="checkbox-checkmark"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="matrix-section-title" style="margin-top: 16px;">Activity Bindings</div>
+            <div id="matrix-bindings-container">
+                <!-- Dynamically populated via JS -->
+            </div>
+
+            <div class="matrix-section-title" style="margin-top: 24px; display: flex; justify-content: space-between; align-items: center;">
+                <span>Custom Bindings</span>
+                <button id="add-custom-binding-btn" style="font-size: 10px; padding: 4px 8px; background: rgba(255,255,255,0.1); border: 1px solid var(--border-hairline); color: white; cursor: pointer; font-family: var(--font-mono);">+ NEW CUSTOM</button>
+            </div>
+            <div id="matrix-custom-bindings-container" style="margin-bottom: 24px;">
+                <!-- Dynamically populated via JS -->
+            </div>
         </div>
     </div>
 
-    <script type="module" src="{{ url_for('static', filename='script.js') }}"></script>
+    <!-- Hint buttons for Sidebar Toggle -->
+    <button id="hint-left" class="hint-btn">H</button>
+    <button id="hint-right" class="hint-btn">P</button>
+
+    <!-- Grid Layout -->
+    <div id="app-grid">
+        <!-- Chat Sidebar -->
+        <aside id="chat-sidebar" onpointerdown="event.stopPropagation()" onwheel="event.stopPropagation()">
+            <div class="sidebar-header stagger-item">
+                <h1 class="system-title">Neural Cognition Link</h1>
+                <div class="status-container">
+                    <span class="status-indicator"></span>
+                    <span id="status">Ready</span>
+                </div>
+            </div>
+            
+            <div id="chat-window" aria-live="polite">
+                <!-- Messages populated here -->
+            </div>
+            
+            <form id="controls" class="stagger-item" onsubmit="event.preventDefault();">
+                <button type="button" id="ptt-btn" class="action-btn mic-btn" aria-label="Push to Talk">MIC</button>
+                <label for="user-input" class="sr-only" style="display:none;">Message Input</label>
+                <input type="text" id="user-input" placeholder="Type a message or hold mic..." autocomplete="off">
+                <button type="submit" id="send-btn" class="action-btn send-btn" aria-label="Send message">CMD</button>
+            </form>
+        </aside>
+
+        <!-- Spacer for 3D Canvas -->
+        <div style="grid-column: 2; pointer-events: none;"></div>
+
+        <!-- Settings Drawer -->
+        <aside id="settings-drawer" class="drawer-closed" onpointerdown="event.stopPropagation()" onwheel="event.stopPropagation()">
+            <div class="drawer-header stagger-item">
+                <h3>System Config</h3>
+                <button id="hide-ui-btn" class="close-btn" aria-label="Close Settings">X</button>
+            </div>
+            
+            <div class="panel-tabs stagger-item">
+                <button class="tab-btn active" data-tab="tab-avatar">Avatar</button>
+                <button class="tab-btn" data-tab="tab-stream">Stream</button>
+                <button class="tab-btn" data-tab="tab-voice">Voice</button>
+            </div>
+            
+            <div class="panel-body stagger-item">
+                <!-- Tab: Avatar & Engine -->
+                <div id="tab-avatar" class="tab-content">
+                    <div class="setting-group">
+                        <label class="setting-label">Visual Engine</label>
+                        <select id="renderer-select">
+                            <option value="vrm">3D VRM Engine</option>
+                            <option value="live2d">2D Live2D Engine</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <label class="setting-label">Upload Model</label>
+                        <label for="vrm-upload" class="custom-file-upload">Upload .VRM</label>
+                        <input type="file" id="vrm-upload" accept=".vrm,.model3.json" style="display: none;" />
+                    </div>
+                </div>
+                
+                <!-- Tab: Streaming Context -->
+                <div id="tab-stream" class="tab-content hidden">
+                    <div class="setting-group">
+                        <label class="setting-label">Live Context Stream</label>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="stream-camera-checkbox">
+                            <span class="checkbox-checkmark"></span>
+                            Camera Feed
+                        </label>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="stream-screen-checkbox">
+                            <span class="checkbox-checkmark"></span>
+                            Screen Sharing
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Tab: Voice Cloning -->
+                <div id="tab-voice" class="tab-content hidden">
+                    <div class="setting-group">
+                        <label class="setting-label">Reference Audio</label>
+                        <label for="voice-upload" class="custom-file-upload voice-file-label">Select .WAV</label>
+                        <input type="file" id="voice-upload" accept=".wav,.ogg,.mp3" style="display: none;" />
+                    </div>
+                    
+                    <div class="setting-group">
+                        <label class="setting-label" for="voice-prompt">Transcript Prompt</label>
+                        <input type="text" id="voice-prompt" placeholder="Transcript..." autocomplete="off">
+                    </div>
+                    
+                    <button id="apply-voice-btn" class="primary-btn">Apply Voice</button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- Vanilla GSAP & Motion Matrix Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // GSAP Entrance Animations
+            gsap.from(".stagger-item", {
+                duration: 0.8,
+                y: 20,
+                opacity: 0,
+                stagger: 0.1,
+                ease: "power3.out"
+            });
+            
+            gsap.from(".registration-mark", {
+                duration: 1,
+                scale: 0.5,
+                opacity: 0,
+                stagger: 0.2,
+                ease: "expo.out",
+                delay: 0.2
+            });
+
+            // Motion Matrix Logic
+            const modal = document.getElementById('matrix-modal');
+            const toggleBtn = document.getElementById('ui-hint');
+            const closeBtn = document.getElementById('matrix-close');
+            const settingsDrawer = document.getElementById('settings-drawer');
+            let configData = null;
+            let availableAnims = [];
+
+            toggleBtn.addEventListener('click', () => {
+                modal.classList.toggle('hidden');
+                // Hide settings if open
+                if (!modal.classList.contains('hidden')) {
+                    settingsDrawer.classList.add('drawer-closed');
+                    fetchConfig();
+                }
+            });
+
+            closeBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+            
+            // Setup toggle buttons
+            const leftSidebar = document.getElementById('chat-sidebar');
+            const rightSidebar = document.getElementById('settings-drawer');
+            
+            document.getElementById('hint-left').addEventListener('click', () => leftSidebar.classList.toggle('hidden'));
+            document.getElementById('hint-right').addEventListener('click', () => rightSidebar.classList.toggle('drawer-closed'));
+            
+            document.addEventListener('keydown', (e) => {
+                if (document.activeElement.tagName === 'INPUT') return;
+
+                const key = e.key.toLowerCase();
+                
+                // Toggle Motion Matrix ('m')
+                if (key === 'm') {
+                    modal.classList.toggle('hidden');
+                    if (!modal.classList.contains('hidden')) {
+                        settingsDrawer.classList.add('drawer-closed');
+                        fetchConfig();
+                    }
+                }
+                
+                // Close Modal on 'h' or escape
+                if ((key === 'h' || key === 'escape') && !modal.classList.contains('hidden')) {
+                    modal.classList.add('hidden');
+                }
+
+                // Toggle Chat Sidebar ('p')
+                if (key === 'p') {
+                    chatSidebar.classList.toggle('sidebar-closed');
+                }
+            });
+
+            async function fetchConfig() {
+                try {
+                    const [confRes, animRes] = await Promise.all([
+                        fetch('/api/config'),
+                        fetch('/api/animations')
+                    ]);
+                    
+                    const conf = await confRes.json();
+                    const anims = await animRes.json();
+                    
+                    if (conf.animation) {
+                        configData = conf.animation;
+                        document.getElementById('matrix-fbx-toggle').checked = configData.use_fbx;
+                    }
+                    if (anims.status === 'success') {
+                        availableAnims = [
+                            ...anims.animations.emotions,
+                            ...anims.animations.actions,
+                            ...anims.animations.dances,
+                            ...anims.animations.fidgets
+                        ];
+                    }
+                    renderBindings();
+                } catch (e) {
+                    console.error("Failed to fetch matrix config:", e);
+                }
+            }
+
+            document.getElementById('matrix-fbx-toggle').addEventListener('change', async (e) => {
+                if (!configData) return;
+                configData.use_fbx = e.target.checked;
+                await saveConfig();
+            });
+
+            async function saveConfig() {
+                try {
+                    await fetch('/api/set_animation_config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(configData)
+                    });
+                } catch (e) {
+                    console.error("Failed to save matrix config:", e);
+                }
+            }
+
+            function renderBindings() {
+                const container = document.getElementById('matrix-bindings-container');
+                container.innerHTML = '';
+                
+                const activities = ["idle", "happy", "sad", "angry", "relaxed", "neutral", "surprised", "thinking", "speaking", "queued", "listening"];
+                
+                activities.forEach(act => {
+                    const row = document.createElement('div');
+                    row.className = 'matrix-row';
+                    
+                    let currentTags = configData.fbx_mapping[act];
+                    if (!currentTags || currentTags === "None") currentTags = [];
+                    if (!Array.isArray(currentTags)) currentTags = [currentTags];
+                    
+                    // Create Header
+                    const header = document.createElement('div');
+                    header.className = 'matrix-row-header';
+                    header.innerHTML = `<span class="setting-label">${act}</span>`;
+                    
+                    // Create Select
+                    const select = document.createElement('select');
+                    select.style.width = '200px';
+                    select.innerHTML = `<option value="" disabled selected>+ APPEND CLIP</option>`;
+                    availableAnims.forEach(anim => {
+                        select.innerHTML += `<option value="${anim}">${anim}</option>`;
+                    });
+                    
+                    select.addEventListener('change', async (e) => {
+                        const val = e.target.value;
+                        if (!val) return;
+                        if (!currentTags.includes(val)) {
+                            currentTags.push(val);
+                            configData.fbx_mapping[act] = currentTags;
+                            await saveConfig();
+                            renderBindings();
+                        }
+                    });
+                    
+                    header.appendChild(select);
+                    row.appendChild(header);
+                    
+                    // Tags container
+                    const tagsDiv = document.createElement('div');
+                    tagsDiv.className = 'tag-container';
+                    
+                    if (currentTags.length === 0) {
+                        tagsDiv.innerHTML = '<span style="font-size:10px; color:var(--text-tertiary); font-family:var(--font-mono)">EMPTY SET</span>';
+                    } else {
+                        currentTags.forEach(tag => {
+                            const t = document.createElement('div');
+                            t.className = 'matrix-tag';
+                            t.innerHTML = `<span>${tag.split('/').pop()}</span> <button data-act="${act}" data-tag="${tag}">X</button>`;
+                            tagsDiv.appendChild(t);
+                        });
+                    }
+                    row.appendChild(tagsDiv);
+                    container.appendChild(row);
+                });
+                
+                // Add Remove Event Listeners
+                container.querySelectorAll('.matrix-tag button').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const act = e.target.getAttribute('data-act');
+                        const tag = e.target.getAttribute('data-tag');
+                        let currentTags = configData.fbx_mapping[act];
+                        if (Array.isArray(currentTags)) {
+                            currentTags = currentTags.filter(t => t !== tag);
+                            if (currentTags.length === 0) currentTags = "None";
+                            configData.fbx_mapping[act] = currentTags;
+                            await saveConfig();
+                            renderBindings();
+                        }
+                    });
+                });
+
+                // Custom Bindings Section
+                const customContainer = document.getElementById('matrix-custom-bindings-container');
+                customContainer.innerHTML = '';
+                
+                if (!configData.custom_actions) configData.custom_actions = {};
+                
+                Object.entries(configData.custom_actions).forEach(([actName, fbxFile]) => {
+                    const row = document.createElement('div');
+                    row.className = 'matrix-row';
+                    row.innerHTML = `
+                        <div class="matrix-row-header" style="justify-content: flex-start; gap: 12px;">
+                            <input type="text" class="custom-act-name" value="${actName}" placeholder="action name (e.g. dance)" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-hairline); color: var(--text-primary); padding: 4px 8px; width: 120px; font-size: 12px; font-family: var(--font-mono);">
+                            <select class="custom-act-file" style="width: 200px;">
+                                <option value="None">None</option>
+                                ${availableAnims.map(anim => `<option value="${anim}" ${anim === fbxFile ? 'selected' : ''}>${anim}</option>`).join('')}
+                            </select>
+                            <button class="remove-custom-btn" data-act="${actName}" style="background: none; border: none; color: #ff4444; cursor: pointer; font-family: var(--font-mono);">X</button>
+                        </div>
+                    `;
+                    
+                    const nameInput = row.querySelector('.custom-act-name');
+                    const fileSelect = row.querySelector('.custom-act-file');
+                    const removeBtn = row.querySelector('.remove-custom-btn');
+                    
+                    const updateCustom = async () => {
+                        const newName = nameInput.value.trim().toLowerCase();
+                        const newFile = fileSelect.value;
+                        if (newName && newName !== actName) {
+                            delete configData.custom_actions[actName];
+                            configData.custom_actions[newName] = newFile;
+                        } else {
+                            configData.custom_actions[actName] = newFile;
+                        }
+                        await saveConfig();
+                        renderBindings();
+                    };
+                    
+                    nameInput.addEventListener('change', updateCustom);
+                    fileSelect.addEventListener('change', updateCustom);
+                    removeBtn.addEventListener('click', async () => {
+                        delete configData.custom_actions[actName];
+                        await saveConfig();
+                        renderBindings();
+                    });
+                    
+                    customContainer.appendChild(row);
+                });
+            }
+
+            document.getElementById('add-custom-binding-btn').addEventListener('click', async () => {
+                if (!configData.custom_actions) configData.custom_actions = {};
+                const id = "new_action_" + Math.floor(Math.random() * 1000);
+                configData.custom_actions[id] = "None";
+                await saveConfig();
+                renderBindings();
+            });
+        });
+    </script>
 </body>
 </html>

@@ -7,11 +7,13 @@ def auto_configure_yaml():
         target_device = "cuda"
         target_is_half = "true"  # String for YAML
         python_is_half = True    # Boolean for Python
-        print("[Hardware] 🟢 Nvidia GPU (CUDA) detected.")
+        target_n_gpu = "-1"      # Offload all llama.cpp layers to GPU
+        print("[Hardware] 🟢 Nvidia GPU (CUDA) detected. Enabling full acceleration.")
     else:
         target_device = "cpu"
         target_is_half = "false"
         python_is_half = False
+        target_n_gpu = "0"       # CPU only
         print("[Hardware] 🟡 CUDA not found. Falling back to CPU.")
 
     # 2. Read the YAML file as raw text (to preserve comments)
@@ -25,12 +27,15 @@ def auto_configure_yaml():
         
         # Overwrites: is_half: false -> is_half: true
         yaml_text = re.sub(r'is_half:\s*(true|false|True|False)', f'is_half: {target_is_half}', yaml_text)
+        
+        # Overwrites: n_gpu_layers: 0 -> n_gpu_layers: -1
+        yaml_text = re.sub(r'n_gpu_layers:\s*[-]?\d+', f'n_gpu_layers: {target_n_gpu}', yaml_text)
 
         # 4. Save the corrected text back to the file
         with open("config.yaml", "w", encoding="utf-8") as f:
             f.write(yaml_text)
             
-        print(f"[Hardware] 💾 Auto-configured config.yaml (device: {target_device}, is_half: {target_is_half})")
+        print(f"[Hardware] 💾 Auto-configured config.yaml (device: {target_device}, is_half: {target_is_half}, n_gpu_layers: {target_n_gpu})")
         
     except FileNotFoundError:
         print("[Hardware] ⚠️ config.yaml not found! Please create it.")

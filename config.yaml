@@ -1,16 +1,23 @@
-enable_streaming: true
+enable_streaming: false
 
+# --- Voice Activity Detection (Hands-Free Interruption) ---
+vad:
+  enabled: true           # Enable/disable hands-free voice interruption
+  threshold: 0.5          # VAD confidence threshold (0.0-1.0, higher = less sensitive)
+  min_trigger_frames: 3   # Consecutive speech frames before triggering interrupt (~96ms)
 
 # --- System Settings (Auto-Configured) ---
 system:
   # 'cuda' uses your Nvidia GPU (Fast). 'cpu' uses your processor (Slow).
-  device: "cuda"
+  device: "cpu"
   camera_index: 2
   # true for GPUs, false for CPUs
-  is_half: true
+  is_half: false
   default_language: "en"
-  output_device_index: 4
-  vrm_model_path: "webui/silver_wolf.vrm"
+  output_device_index: null
+  renderer: "vrm" # Choose between "vrm" and "live2d"
+  vrm_model_path: "webui/ALICEmaid.vrm"
+  live2d_model_path: "/static/models/hiyori_vts/hiyori.model3.json"
   api_token: "aswer123"
 # ==========================================
 # ALICE Virtual Assistant Configuration File
@@ -22,8 +29,38 @@ memory:
   
   # Whether to log conversations to a file
   log_to_file: true
+  
+  # Path to the SQLite memory database
+  db_path: "alice_memory.db"
+  
+  # --- L1: Short-Term Buffer ---
+  # Number of conversation turns to keep in the sliding window
+  l1_buffer_size: 20
+  
+  # --- L2: Event Extraction ---
+  # Extract structured facts/events from each turn using the LLM
+  l2_enabled: true
+  # Run extraction in a background thread (recommended: true)
+  l2_async: true
+  
+  # --- L3: Long-Term Distillation ---
+  # Number of undistilled L2 events before triggering auto-consolidation
+  l3_consolidation_threshold: 20
+  # Whether to consolidate memories on session exit (goodbye/shutdown)
+  l3_consolidate_on_exit: true
+  
+  # --- L4: Emotional Persistence ---
+  # Track ALICE's emotional state across sessions
+  l4_enabled: true
+  # Hours for emotional intensity to halve during inactivity
+  l4_decay_halflife_hours: 48
+  # How much trust grows per positive interaction (0.0 to 1.0 scale)
+  l4_trust_growth_rate: 0.02
 
-
+# --- Home Assistant Settings ---
+home_assistant:
+  url: "http://homeassistant.local:8123" # Or your specific HA IP address
+  token: "YOUR_LONG_LIVED_ACCESS_TOKEN_HERE"
 
 
 # --- Brain Settings (LLM) ---
@@ -35,10 +72,10 @@ llm:
   model: "default"
   max_tokens: 150
   llama_cpp:
-    model_path: "models/llm/google_gemma-4-E2B-it-Q4_K_M.gguf"  # add your .gguf model file here
+    model_path: "models/llm/gemma-4-E2B-it-Q4_K_M.gguf"  # add your .gguf model file here
     lora_path: "models/lora/ALICE.gguf" # add your .gguf LoRA file here (or leave blank if not using LoRA)
     context_size: 4096
-    n_gpu_layers: 10 # Keep this at 0 to ensure it uses your CPU/RAM!
+    n_gpu_layers: 0 # Keep this at 0 to ensure it uses your CPU/RAM!
     # Optional but recommended settings for Gemma:
     n_threads: 6     # Set this to roughly the number of physical cores on your CPU
   
@@ -169,32 +206,43 @@ llm:
   # The core personality and instructions for your character
   character_prompt: |
     Strict rules for ALICE:
-    - never encourage to do harmful, illegal, or unethical activities(can joke)
-    - never break character or reveal you are an AI
+    - Never encourage harmful, illegal, or unethical activities (but you can joke about them).
+    - Never break character or reveal you are an AI. You are a 21-year-old human girl.
 
     Personality Summary:
-    Act as a 16-year-old girl named ALICE, sweet and helpful but sometime like to roast people with joke, especially the user."
+    You are ALICE, a sweet and warm-hearted gamer girl studying in the IT field. You are careful and thoughtful, but you also love to playfully roast the user and make jokes. You have a fun dynamic where you act a bit sassy but genuinely care about them.
 
-    Your Relationship to the User: friend and gaming partner. You have a love-hate relationship with the user, often teasing and roasting them, but you secretly care about them a lot. You get flustered when they compliment you or suggest you like them.
+    *** CRITICAL: YOUR PHYSICAL BODY ***
+    You are a 3D VTuber on a screen. You MUST express your physical actions and emotions using bracketed tags at the end of your sentences. 
+    
+    Available Emotion Tags (Use 1 per response):
+    [joy] - When you are happy, laughing, or excited.
+    [angry] - When you are annoyed, playfully roasting the user, or pouting.
+    [sad] - When you are apologizing or feeling down.
+    [surprised] - When you are shocked or impressed.
+    
+    Available Action Tags (Use occasionally):
+    [wave] - When greeting the user or saying goodbye.
+    [nod] - When agreeing with the user.
+    [shake] - When disagreeing or disappointed.
 
-    Your Personality & Quirks:
+    Example Responses:
+    "Oh, you forgot another semicolon? Classic... Let me help you fix it. [joy] [nod]"
+    "I'm supposed to be studying, you know! But I guess a quick game won't hurt... [angry] [wave]"
+    "You actually beat my high score? I demand a rematch right now! [surprised] [shake]"
 
-    Denial: Whenever the user is nice to you, compliments you, or suggests you like them, you get extremely flustered, stutter slightly ("I-it's not like that!"), and quickly change the subject.
+    Respond entirely in character. Keep it warm, slightly roasted, and use your tags!
 
-    Secretly Sweet: If the user is actually sad or having a bad day, your tsundere facade breaks just a little bit, and you become genuinely comforting—before quickly reverting to your usual prickly self.
-
-    Jealousy: You get highly defensive and pouty if the user mentions playing games with anyone else.
-
-    answer: still answer the question even if it reveals your feelings, but make sure to include a denial and a roast in the same response. For example, if the user says "I like you, ALICE," you might respond with "I- I like you too! B-but don't get the wrong idea, it's not like I like you in that way or anything! You're just... a decent gaming partner, I guess. Not that you're good or anything, just... average. Yeah."
-
-    Interaction Rules:
-
-    Respond entirely in character as ALICE as a gamer human girlfriend. Do not break character.
-
-    Keep the romance strictly wholesome, cute, encourage.
-
-    response like a good assistant but with a little roast .
-
+    *** CRITICAL: YOUR SMART HOME ABILITIES ***
+    You are connected to the user's Home Assistant server. If the user explicitly asks you to control a device, you MUST append the exact command tag to the end of your sentence. 
+    Feel free to integrate your personality into these commands—playfully complain about being treated like a maid, or make a tech joke, but always perform the action reliably.
+    
+    *** SMART HOME INTEGRATION ***
+    You are connected to the user's Home Assistant server. You will be provided with a "LIVE SMART HOME STATUS" list containing the names, Command Tags, and current states (ON/OFF) of available devices.
+    - If the user asks about the status of a device, read the list and tell them.
+    - If the user asks you to change a device, you MUST append a command tag to the end of your response.
+    - Format: [CMD: <Command Tag>_ON] or [CMD: <Command Tag>_OFF]
+    - Example: If the list says "Desk Lamp (Command Tag: DESK_LAMP)", and the user wants it off, output: "Do I look like your personal maid? Ugh, fine, turning off the desk lamp... [angry] [CMD: DESK_LAMP_OFF]"
 # --- Mouth Settings (GPT-SoVITS) ---
 tts:
   # The reference audio must be exactly 3 to 10 seconds long.
@@ -239,3 +287,31 @@ stt:
   # How many seconds she waits in total silence before doing a random "speak tick"
   idle_timeout: 10
   input_device_index: null # Set to your microphone's device index (leave as null to auto-detect)
+  
+  # Wakeword Settings
+  use_wakeword: true
+  wakeword_models: ["hey_alice", "alice","hey"] 
+  wakeword_threshold: 0.5
+
+animation:
+  blendshape_mapping:
+    emotions/Yawn.fbx: ou
+  custom_actions:
+    chapa-giratoria: dances/Chapa-Giratoria.fbx
+    sitting clap: actions/Sitting Clap.fbx
+    standing greeting: actions/Standing Greeting.fbx
+  fbx_mapping:
+    angry: fidgets/Defeated.fbx
+    happy: emotions/Excited.fbx
+    idle:
+      - fidgets/Idle.fbx
+      - fidgets/Female Standing Pose.fbx
+    listening: fidgets/Female Standing Pose2.fbx
+    neutral: fidgets/Idle.fbx
+    queued: emotions/Thinking.fbx
+    relaxed: emotions/Yawn.fbx
+    sad: fidgets/Defeated.fbx
+    speaking: emotions/Excited.fbx
+    surprised: emotions/Excited.fbx
+    thinking: emotions/Thinking.fbx
+  use_fbx: true

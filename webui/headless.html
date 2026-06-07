@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ALICE - Headless Mode</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #0f0;
+            font-family: monospace;
+            padding: 20px;
+        }
+        #log {
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h2>ALICE Headless Output</h2>
+    <div id="log">Backend running. Audio services active.</div>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        const log = document.getElementById('log');
+        socket.on('status', (data) => {
+            log.innerText += '\n[STATUS] ' + data.msg;
+        });
+        socket.on('new_message', (data) => {
+            log.innerText += `\n[${data.speaker}] ${data.text}`;
+        });
+    </script>
+</body>
+</html>

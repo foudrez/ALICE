@@ -3,6 +3,8 @@ import soundfile as sf
 import io
 import types
 
+import numpy as np
+
 def get_device_id(name_fragment):
     """Finds a device ID based on a partial name string."""
     if name_fragment is None:
@@ -42,6 +44,10 @@ def output_audio(result, cfg):
         # Convert bytes to raw audio data
         data, fs = sf.read(io.BytesIO(chunk_bytes))
         
+        # Ensure 2-channel stereo to prevent PaErrorCode -9998 on strict devices
+        if data.ndim == 1:
+            data = np.column_stack((data, data))
+            
         # Play directly to the target (If target_id is None, sounddevice uses Windows Default)
         play_on_device(data, fs, target_id)
 
